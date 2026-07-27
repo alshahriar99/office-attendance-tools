@@ -1,13 +1,11 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { determineAttendanceStatus, calculateWorkingMinutes } from "@/lib/utils/time";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-
-const prisma = new PrismaClient();
 
 // Helper to get authenticated user session
 async function getSession() {

@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "dummy_key");
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "sqlite",
+    provider: "postgresql",
   }),
   trustedOrigins: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"],
   emailAndPassword: {

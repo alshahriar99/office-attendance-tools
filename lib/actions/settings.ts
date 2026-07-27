@@ -6,8 +6,12 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 export async function getSettings() {
-  const settings = await prisma.settings.findFirst();
-  return { settings };
+  try {
+    const settings = await prisma.settings.findFirst();
+    return { settings };
+  } catch {
+    return { settings: null };
+  }
 }
 
 export async function updateSettingsAction(data: any) {
