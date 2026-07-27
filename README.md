@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Office Attendance Tool
 
-## Getting Started
+A modern, dynamic, and complete office attendance and HR management system built with Next.js App Router, Prisma, and Better Auth.
 
-First, run the development server:
+## Features
+- **Role-Based Access Control (RBAC):** Separate dashboards for Admins and Employees.
+- **Attendance Tracking:** Secure Check-In / Check-Out system with automatic Late detection based on configurable thresholds.
+- **Leave Management:** Request, approve, or reject leaves seamlessly.
+- **Holiday Calendar:** Manage company and national holidays.
+- **Comprehensive Reporting:** Generate, print, and export (CSV) monthly attendance and late arrival reports.
+- **Dynamic Settings:** Configurable office hours, late thresholds, and localization.
+- **Modern UI:** Built with Shadcn UI, Tailwind CSS, Base UI, and Framer Motion micro-animations. Fully responsive and supports Dark Mode.
 
+## Tech Stack
+- **Framework:** Next.js 16.2.11 (App Router)
+- **Database:** SQLite (via Prisma ORM)
+- **Authentication:** Better Auth (v1)
+- **Styling:** Tailwind CSS + Shadcn UI
+- **Tables & Forms:** TanStack Table, React Hook Form, Zod
+- **Charts:** Recharts
+- **Icons:** Lucide React
+
+## Prerequisites
+- Node.js (v18 or higher)
+- npm or pnpm
+
+## Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd office-attendance-tools
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables:**
+   Copy `.env.example` to `.env` and update the values.
+   ```bash
+   cp .env.example .env
+   ```
+   *Ensure you generate a secure `BETTER_AUTH_SECRET`.*
+
+4. **Setup the Database:**
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+5. **Seed Initial Data:**
+   Creates a default Admin user and initial settings.
+   ```bash
+   npm run db:seed
+   ```
+   *Default Admin credentials:*
+   Email: `admin@example.com`
+   Password: `Password123!`
+
+6. **Run the Development Server:**
+   ```bash
+   npm run dev
+   ```
+
+## Production Deployment
+
+### Building for Production
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Deploying to Vercel
+This project is fully compatible with Vercel out of the box. 
+1. Push your code to GitHub.
+2. Import the repository in Vercel.
+3. Add the required Environment Variables in Vercel Settings.
+4. (Optional) If using Postgres instead of SQLite, update the `provider` in `schema.prisma` and use `DATABASE_URL` for the Postgres connection string.
+5. Deploy!
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Deploying to a VPS (Hostinger, DigitalOcean, etc.)
+1. Ensure Node.js and PM2 are installed on your server.
+2. Clone the repository and run `npm install`.
+3. Configure your `.env` file.
+4. Run `npx prisma generate` and `npx prisma db push`.
+5. Run `npm run build`.
+6. Start the server using PM2:
+   ```bash
+   pm2 start npm --name "attendance-app" -- start
+   ```
+7. Configure Nginx as a reverse proxy to `http://localhost:3000`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+- `npm run dev` - Starts the development server.
+- `npm run build` - Builds the application for production.
+- `npm run start` - Starts the production server.
+- `npm run lint` - Lints the codebase.
+- `npm run db:seed` - Seeds the database with default data.

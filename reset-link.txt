@@ -1,0 +1,2 @@
+Password reset link for shahriarmubin22@gmail.com:
+http://localhost:3001/api/auth/reset-password/NfQ3XLomM3n4gOQZaFzlul9Q?callbackURL=%2Freset-password

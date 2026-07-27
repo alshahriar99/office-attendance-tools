@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Custom fields
+  role          String    @default("EMPLOYEE")
+  employeeId    String?   @unique
+  phone         String?
+  designation   String?
+  joiningDate   DateTime?
+  status        String    @default("ACTIVE") // ACTIVE, INACTIVE
+
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  
+  Session       Session[]
+  Account       Account[]
+  Attendance    Attendance[]
+  Leave         Leave[]
+  AuditLogs     AuditLog[]
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id            String    @id @default(cuid())
+  userId        String
+  accountId     String
+  providerId    String
+  accessToken   String?
+  refreshToken  String?
+  idToken       String?
+  expiresAt     DateTime?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Settings {
+  id              String   @id @default(cuid())
+  companyName     String   @default("Acme Corp")
+  companyLogo     String?
+  officeAddress   String?
+  officePhone     String?
+  officeEmail     String?
+  officeStartTime String   @default("09:00")
+  officeEndTime   String   @default("18:00")
+  halfDayTime     String   @default("14:00")
+  lateThreshold   Int      @default(15) // minutes after start time
+  weekendSettings String   @default("Saturday,Sunday") // comma separated days
+  timezone        String   @default("UTC")
+  language        String   @default("en")
+  theme           String   @default("system")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Attendance {
+  id             String           @id @default(cuid())
+  userId         String
+  date           DateTime
+  checkIn        DateTime
+  checkOut       DateTime?
+  status         String           @default("PRESENT")
+  workingMinutes Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+model Leave {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // CASUAL, SICK, ANNUAL, EMERGENCY
+  startDate  DateTime
+  endDate    DateTime
+  reason     String
+  status     String   @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  adminNote  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Holiday {
+  id         String   @id @default(cuid())
+  name       String
+  date       DateTime
+  type       String   @default("COMPANY") // NATIONAL, COMPANY, WEEKEND
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String?
+  actorId    String?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
