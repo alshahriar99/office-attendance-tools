@@ -11,20 +11,42 @@ const getOrigins = () => {
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:3003",
-    "http://localhost:3004"
+    "http://localhost:3004",
+    "https://office-attendance-tools-two.vercel.app",
+    "https://office-attendance-tools.vercel.app"
   ];
   if (process.env.NEXT_PUBLIC_APP_URL) {
     origins.push(process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, ""));
   }
+  if (process.env.BETTER_AUTH_URL) {
+    origins.push(process.env.BETTER_AUTH_URL.replace(/\/$/, ""));
+  }
   if (process.env.VERCEL_URL) {
     origins.push(`https://${process.env.VERCEL_URL.replace(/\/$/, "")}`);
+    origins.push(`http://${process.env.VERCEL_URL.replace(/\/$/, "")}`);
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    origins.push(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/$/, "")}`);
   }
   return origins;
 };
 
+const getBaseURL = () => {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes("localhost")) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+  if (process.env.BETTER_AUTH_URL && !process.env.BETTER_AUTH_URL.includes("localhost")) {
+    return process.env.BETTER_AUTH_URL.replace(/\/$/, "");
+  }
+  return undefined;
+};
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "office-attendance-tools-super-secret-key-32-chars",
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
+  baseURL: getBaseURL(),
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
