@@ -3,6 +3,24 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
 export async function GET() {
+  const dbUrl = process.env.DATABASE_URL || "";
+  const cleanUrl = dbUrl.trim().replace(/^["']|["']$/g, "");
+  const maskedUrl = cleanUrl.length > 20 ? cleanUrl.substring(0, 20) + "..." : cleanUrl;
+
+  if (!cleanUrl) {
+    return NextResponse.json({
+      success: false,
+      error: "DATABASE_URL environment variable is MISSING or EMPTY in your Vercel Project Settings! Please add DATABASE_URL in Vercel Settings -> Environment Variables and select Production environment.",
+    }, { status: 500 });
+  }
+
+  if (!cleanUrl.startsWith("postgresql://") && !cleanUrl.startsWith("postgres://")) {
+    return NextResponse.json({
+      success: false,
+      error: `DATABASE_URL in Vercel starts with invalid format: "${maskedUrl}". It MUST start with postgresql:// or postgres://!`,
+    }, { status: 500 });
+  }
+
   const results: string[] = [];
   const errors: string[] = [];
 
