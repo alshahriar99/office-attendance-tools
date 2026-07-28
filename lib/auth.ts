@@ -5,20 +5,32 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY || "dummy_key");
 
+const getOrigins = () => {
+  const origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:3004"
+  ];
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    origins.push(process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, ""));
+  }
+  if (process.env.VERCEL_URL) {
+    origins.push(`https://${process.env.VERCEL_URL.replace(/\/$/, "")}`);
+  }
+  return origins;
+};
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  trustedOrigins: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003", "http://localhost:3004"],
+  trustedOrigins: getOrigins(),
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      console.log("\n==========================================");
-      console.log(`Password reset requested for ${user.email}`);
-      console.log(`Reset URL: ${url}`);
-      console.log("==========================================\n");
-      require('fs').writeFileSync('reset-link.txt', `Password reset link for ${user.email}:\n${url}\n`, 'utf-8');
-
+      console.log(`Password reset requested for ${user.email}: ${url}`);
 
       if (process.env.RESEND_API_KEY) {
         try {
