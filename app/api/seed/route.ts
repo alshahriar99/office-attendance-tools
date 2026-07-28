@@ -17,49 +17,45 @@ export async function GET() {
 
     const results: string[] = [];
 
-    // 1. Create or ensure Admin user exists
-    let adminUser = await prisma.user.findUnique({ where: { email: adminEmail } });
-    if (!adminUser) {
-      const adminRes = await auth.api.signUpEmail({
-        body: {
-          email: adminEmail,
-          password: adminPassword,
-          name: "Admin User",
-        },
+    // Delete existing seed accounts/users to ensure fresh valid password hashes
+    const seedEmails = [adminEmail, ...employees.map(e => e.email)];
+    const existingUsers = await prisma.user.findMany({
+      where: { email: { in: seedEmails } }
+    });
+    if (existingUsers.length > 0) {
+      const userIds = existingUsers.map(u => u.id);
+      await prisma.account.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
+      await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+      results.push("Cleaned up previous seed users");
+    }
+
+    // 1. Create Admin user
+    const adminRes = await auth.api.signUpEmail({
+      body: {
+        email: adminEmail,
+        password: adminPassword,
+        name: "Admin User",
+      },
+    });
+    if (adminRes && adminRes.user) {
+      await prisma.user.update({
+        where: { id: adminRes.user.id },
+        data: { role: "ADMIN" },
       });
-      if (adminRes && adminRes.user) {
-        await prisma.user.update({
-          where: { id: adminRes.user.id },
-          data: { role: "ADMIN" },
-        });
-        results.push(`Created admin: ${adminEmail} (password: ${adminPassword})`);
-      }
-    } else {
-      // Ensure role is ADMIN
-      if (adminUser.role !== "ADMIN") {
-        await prisma.user.update({
-          where: { id: adminUser.id },
-          data: { role: "ADMIN" },
-        });
-      }
-      results.push(`Admin already exists: ${adminEmail}`);
+      results.push(`Created admin: ${adminEmail} (password: ${adminPassword})`);
     }
 
     // 2. Create Employees
     for (const emp of employees) {
-      const existing = await prisma.user.findUnique({ where: { email: emp.email } });
-      if (!existing) {
-        await auth.api.signUpEmail({
-          body: {
-            email: emp.email,
-            password: adminPassword,
-            name: emp.name,
-          },
-        });
-        results.push(`Created employee: ${emp.email} (password: ${adminPassword})`);
-      } else {
-        results.push(`Employee already exists: ${emp.email}`);
-      }
+      await auth.api.signUpEmail({
+        body: {
+          email: emp.email,
+          password: adminPassword,
+          name: emp.name,
+        },
+      });
+      results.push(`Created employee: ${emp.email} (password: ${adminPassword})`);
     }
 
     // 3. Ensure Settings exist
