@@ -23,6 +23,8 @@ const getOrigins = () => {
 };
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET || "office-attendance-tools-super-secret-key-32-chars",
+  baseURL: process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

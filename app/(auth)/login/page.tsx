@@ -62,13 +62,15 @@ export default function LoginPage() {
         email: data.email,
         password: data.password,
       });
-      if (result.error) {
-        setError(result.error.message || "An error occurred during login.");
+      if (result?.error) {
+        const msg = result.error.message || result.error.statusText || "Invalid email or password. Please check your credentials or run /api/seed first.";
+        setError(msg);
       } else {
         router.push("/");
       }
-    } catch {
-      setError("An unexpected error occurred.");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err?.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
