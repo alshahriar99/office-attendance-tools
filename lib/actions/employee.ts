@@ -133,9 +133,15 @@ export async function deleteEmployeeAction(id: string) {
   }
 
   try {
-    await prisma.user.delete({
-      where: { id }
-    });
+    try {
+      await prisma.user.delete({
+        where: { id }
+      });
+    } catch (e: any) {
+      if (e.code !== 'P2025') {
+        throw e;
+      }
+    }
 
     await prisma.auditLog.create({
       data: {
