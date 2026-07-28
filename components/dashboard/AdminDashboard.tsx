@@ -23,18 +23,18 @@ export async function AdminDashboard() {
     totalEmployees: 0, presentToday: 0, absentToday: 0, lateToday: 0, onLeave: 0, averageWorkingMinutes: 0
   };
 
-  const totalEmployees = await prisma.user.count({ where: { role: "EMPLOYEE" } });
-  const pendingLeaves = await prisma.leave.count({ where: { status: "PENDING" } });
-  
-  const nextHoliday = await prisma.holiday.findFirst({
-    where: { date: { gte: new Date() } },
-    orderBy: { date: "asc" }
-  });
+  const [totalEmployees, pendingLeaves, nextHoliday] = await Promise.all([
+    prisma.user.count({ where: { role: "EMPLOYEE" } }),
+    prisma.leave.count({ where: { status: "PENDING" } }),
+    prisma.holiday.findFirst({
+      where: { date: { gte: new Date() } },
+      orderBy: { date: "asc" }
+    })
+  ]);
 
-  // Generate chart data for the last 7 days
-  const chartData = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = subDays(new Date(), i);
+  // Generate chart data for the last 7 days in PARALLEL
+  const chartDataPromises = Array.from({ length: 7 }).map(async (_, i) => {
+    const d = subDays(new Date(), 6 - i); // 6 to 0
     const start = startOfDay(d);
     const end = endOfDay(d);
     
@@ -49,17 +49,17 @@ export async function AdminDashboard() {
 
     const present = attendances.filter(a => a.status === "PRESENT").length;
     const late = attendances.filter(a => a.status === "LATE").length;
-    // Assuming totalEmployees is total count, absent = total - (present + late) 
-    // We ignore weekends/leaves for simplicity in this visualization
     const absent = Math.max(0, totalEmployees - (present + late));
 
-    chartData.push({
+    return {
       date: format(d, "MMM dd"),
       present,
       late,
       absent
-    });
-  }
+    };
+  });
+
+  const chartData = await Promise.all(chartDataPromises);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in-50 duration-500">
