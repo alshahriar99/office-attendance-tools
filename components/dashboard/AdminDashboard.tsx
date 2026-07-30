@@ -175,7 +175,7 @@ export async function AdminDashboard() {
               </p>
             </CardContent>
           </Card>
-          <ActivityCard activities={recentActivity} />
+          <ActivityCard activities={recentActivity} tz={tz} />
         </div>
       </div>
     </div>

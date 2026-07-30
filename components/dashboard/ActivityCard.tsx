@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export function ActivityCard({ activities = [] }: { activities?: any[] }) {
+export function ActivityCard({ activities = [], tz = "UTC" }: { activities?: any[], tz?: string }) {
   return (
     <Card className="border-border shadow-sm h-full flex flex-col">
       <CardHeader>
@@ -33,7 +33,7 @@ export function ActivityCard({ activities = [] }: { activities?: any[] }) {
                         {activity.employeeId && <span className="text-muted-foreground font-normal ml-1 text-xs">({activity.employeeId})</span>}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(activity.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(activity.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz })}
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center gap-1">

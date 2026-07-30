@@ -75,7 +75,7 @@ export async function EmployeeDashboard({ user }: { user: any }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {attendance ? new Date(attendance.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}
+              {attendance ? new Date(attendance.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz }) : "--:--"}
             </div>
           </CardContent>
           <CardFooter className="pt-2">
@@ -90,7 +90,7 @@ export async function EmployeeDashboard({ user }: { user: any }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {attendance?.checkOut ? new Date(attendance.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}
+              {attendance?.checkOut ? new Date(attendance.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz }) : "--:--"}
             </div>
           </CardContent>
           <CardFooter className="pt-2">
@@ -173,8 +173,8 @@ export async function EmployeeDashboard({ user }: { user: any }) {
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatMinutes(record.workingMinutes || 0)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--:--"}
+                        {new Date(record.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz })} - 
+                        {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz }) : "--:--"}
                       </p>
                     </div>
                   </div>
