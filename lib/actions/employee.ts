@@ -101,9 +101,32 @@ export async function updateEmployeeAction(id: string, data: any) {
     });
 
     if (data.password) {
-      // Note: Changing passwords directly via Prisma isn't straightforward due to Better Auth's hashing.
-      // In a real app, use the Better Auth Admin plugin or a reset password flow.
-      console.warn("Password update from Admin dashboard is not supported without the Admin plugin.");
+      // Use Better Auth's signUp to generate a properly hashed password
+      const tempEmail = 'temp_pw_' + Date.now() + '@example.com';
+      try {
+        const tempResult = await auth.api.signUpEmail({
+          body: { name: 'Temp', email: tempEmail, password: data.password },
+          asResponse: false
+        });
+        
+        const tempAccount = await prisma.account.findFirst({
+          where: { userId: tempResult.user.id }
+        });
+        
+        // Delete the temporary user
+        await prisma.account.deleteMany({ where: { userId: tempResult.user.id } });
+        await prisma.session.deleteMany({ where: { userId: tempResult.user.id } });
+        await prisma.user.delete({ where: { id: tempResult.user.id } });
+
+        if (tempAccount?.password) {
+          await prisma.account.updateMany({
+            where: { userId: id, providerId: 'credential' },
+            data: { password: tempAccount.password }
+          });
+        }
+      } catch (pwErr: any) {
+        console.error("Password update failed:", pwErr.message);
+      }
     }
 
     await prisma.auditLog.create({
