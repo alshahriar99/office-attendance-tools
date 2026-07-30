@@ -9,21 +9,26 @@ import { formatMinutes } from "@/lib/utils/time";
 import { prisma } from "@/lib/prisma";
 
 export async function EmployeeDashboard({ user }: { user: any }) {
-  const { settings } = await getSettings();
+  const [
+    { settings },
+    { stats, recentActivity, todayAttendance },
+    nextHoliday,
+    pendingLeaves
+  ] = await Promise.all([
+    getSettings(),
+    getEmployeeStats(),
+    prisma.holiday.findFirst({
+      where: { date: { gte: new Date() } },
+      orderBy: { date: "asc" }
+    }),
+    prisma.leave.count({
+      where: { userId: user.id, status: "PENDING" }
+    })
+  ]);
+
   const tz = settings?.timezone || "Asia/Dhaka";
   const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz });
   const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz });
-
-  const { stats, recentActivity, todayAttendance } = await getEmployeeStats();
-
-  const nextHoliday = await prisma.holiday.findFirst({
-    where: { date: { gte: new Date() } },
-    orderBy: { date: "asc" }
-  });
-
-  const pendingLeaves = await prisma.leave.count({
-    where: { userId: user.id, status: "PENDING" }
-  });
 
   const safeStats = stats || { leavesRemaining: 0, totalHours: 0, daysPresent: 0 };
 

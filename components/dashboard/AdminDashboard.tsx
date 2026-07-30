@@ -13,38 +13,47 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { formatMinutes } from "@/lib/utils/time";
 
 export async function AdminDashboard() {
-  const { settings } = await getSettings();
-  const tz = settings?.timezone || "Asia/Dhaka";
-  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz });
-  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz }); 
+  const sevenDaysAgo = startOfDay(subDays(new Date(), 6));
 
-  const { stats, recentActivity } = await getDashboardStats();
-  const safeStats = stats || {
-    totalEmployees: 0, presentToday: 0, absentToday: 0, lateToday: 0, onLeave: 0, averageWorkingMinutes: 0
-  };
-
-  const [totalEmployees, pendingLeaves, nextHoliday] = await Promise.all([
+  const [
+    { settings },
+    { stats, recentActivity },
+    totalEmployees,
+    pendingLeaves,
+    nextHoliday,
+    rawChartAttendances
+  ] = await Promise.all([
+    getSettings(),
+    getDashboardStats(),
     prisma.user.count({ where: { role: "EMPLOYEE" } }),
     prisma.leave.count({ where: { status: "PENDING" } }),
     prisma.holiday.findFirst({
       where: { date: { gte: new Date() } },
       orderBy: { date: "asc" }
+    }),
+    prisma.attendance.findMany({
+      where: {
+        date: { gte: sevenDaysAgo }
+      }
     })
   ]);
 
-  // Generate chart data for the last 7 days in PARALLEL
-  const chartDataPromises = Array.from({ length: 7 }).map(async (_, i) => {
-    const d = subDays(new Date(), 6 - i); // 6 to 0
-    const start = startOfDay(d);
-    const end = endOfDay(d);
-    
-    const attendances = await prisma.attendance.findMany({
-      where: {
-        date: {
-          gte: start,
-          lte: end,
-        }
-      }
+  const tz = settings?.timezone || "Asia/Dhaka";
+  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz });
+  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz }); 
+
+  const safeStats = stats || {
+    totalEmployees: 0, presentToday: 0, absentToday: 0, lateToday: 0, onLeave: 0, averageWorkingMinutes: 0
+  };
+
+  const chartData = Array.from({ length: 7 }).map((_, i) => {
+    const d = subDays(new Date(), 6 - i);
+    const start = startOfDay(d).getTime();
+    const end = endOfDay(d).getTime();
+
+    const attendances = rawChartAttendances.filter(a => {
+      const t = new Date(a.date).getTime();
+      return t >= start && t <= end;
     });
 
     const present = attendances.filter(a => a.status === "PRESENT").length;
@@ -58,8 +67,6 @@ export async function AdminDashboard() {
       absent
     };
   });
-
-  const chartData = await Promise.all(chartDataPromises);
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in-50 duration-500">

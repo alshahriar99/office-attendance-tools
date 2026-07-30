@@ -153,13 +153,15 @@ export async function getDashboardStats() {
     
     const today = getStartOfDay();
     
-    const totalUsers = await prisma.user.count({ where: { role: 'EMPLOYEE' } });
-    const attendancesToday = await prisma.attendance.findMany({
-      where: { date: today },
-      include: {
-        user: { select: { name: true, image: true, employeeId: true } }
-      }
-    });
+    const [totalUsers, attendancesToday] = await Promise.all([
+      prisma.user.count({ where: { role: 'EMPLOYEE' } }),
+      prisma.attendance.findMany({
+        where: { date: today },
+        include: {
+          user: { select: { name: true, image: true, employeeId: true } }
+        }
+      })
+    ]);
     
     const present = attendancesToday.filter(a => a.status === 'PRESENT').length;
     const late = attendancesToday.filter(a => a.status === 'LATE').length;
@@ -266,20 +268,21 @@ export async function getEmployeeStats() {
     const userId = session.user.id;
     const today = getStartOfDay();
 
-    const todayAttendance = await prisma.attendance.findUnique({
-      where: {
-        userId_date: {
-          userId,
-          date: today
+    const [todayAttendance, recentActivity] = await Promise.all([
+      prisma.attendance.findUnique({
+        where: {
+          userId_date: {
+            userId,
+            date: today
+          }
         }
-      }
-    });
-
-    const recentActivity = await prisma.attendance.findMany({
-      where: { userId },
-      orderBy: { date: 'desc' },
-      take: 7
-    });
+      }),
+      prisma.attendance.findMany({
+        where: { userId },
+        orderBy: { date: 'desc' },
+        take: 7
+      })
+    ]);
 
     const totalHours = recentActivity.reduce((acc, a) => acc + (a.workingMinutes || 0), 0);
     const daysPresent = recentActivity.filter(a => a.status === 'PRESENT' || a.status === 'LATE' || a.status === 'HALF_DAY').length;
