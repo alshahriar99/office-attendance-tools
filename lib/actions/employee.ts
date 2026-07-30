@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 // In a real production system, user creation should use auth.api.signUpEmail on the server,
 // but server-side Better Auth SDK has specific requirements. 
 // For now, we will interact with Prisma directly, noting the password won't be hashed properly unless we import bcrypt.
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function getEmployees() {
   const users = await prisma.user.findMany({
