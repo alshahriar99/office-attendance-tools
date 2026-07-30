@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { notifyAdmins, createNotification } from "./notification";
 
 export async function getLeaves() {
   const session = await auth.api.getSession({
@@ -60,6 +61,13 @@ export async function applyLeaveAction(data: any) {
       }
     });
 
+    await notifyAdmins({
+      title: "New Leave Request",
+      message: `${session.user.name || "An employee"} applied for ${data.type} leave from ${new Date(data.startDate).toLocaleDateString()} to ${new Date(data.endDate).toLocaleDateString()}.`,
+      type: "LEAVE_REQUEST",
+      link: "/leaves"
+    });
+
     revalidatePath("/leaves");
     return { success: true, leave };
   } catch (error: any) {
@@ -114,6 +122,14 @@ export async function updateLeaveStatusAction(id: string, status: string, adminN
         actorId: session.user.id,
         details: `Leave request ${status.toLowerCase()}`,
       }
+    });
+
+    await createNotification({
+      userId: leave.userId,
+      title: `Leave Request ${status}`,
+      message: `Your leave request from ${leave.startDate.toLocaleDateString()} to ${leave.endDate.toLocaleDateString()} has been ${status.toLowerCase()}.${adminNote ? ' Note: ' + adminNote : ''}`,
+      type: "LEAVE_REQUEST",
+      link: "/leaves"
     });
 
     revalidatePath("/leaves");

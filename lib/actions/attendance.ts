@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { determineAttendanceStatus, calculateWorkingMinutes } from "@/lib/utils/time";
+import { notifyAdmins } from "./notification";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
@@ -61,6 +62,13 @@ export async function checkInAction() {
       }
     });
 
+    await notifyAdmins({
+      title: "Check-in Alert",
+      message: `${session.user.name || "An employee"} checked in at ${now.toLocaleTimeString()}`,
+      type: "ATTENDANCE",
+      link: "/attendance"
+    });
+
     revalidatePath("/attendance");
     revalidatePath("/");
     return { success: true };
@@ -101,6 +109,13 @@ export async function checkOutAction() {
         checkOut: now,
         workingMinutes,
       }
+    });
+
+    await notifyAdmins({
+      title: "Check-out Alert",
+      message: `${session.user.name || "An employee"} checked out at ${now.toLocaleTimeString()}`,
+      type: "ATTENDANCE",
+      link: "/attendance"
     });
 
     revalidatePath("/attendance");

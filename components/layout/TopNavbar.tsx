@@ -17,7 +17,8 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "@/lib/auth-client";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./Sidebar";
-import { mockNotifications } from "@/lib/mock-data";
+import { getNotificationsAction, markAsReadAction, markAllAsReadAction } from "@/lib/actions/notification";
+import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -31,7 +32,37 @@ export function TopNavbar({ companyName }: { companyName?: string }) {
     ? pathSegments[0].charAt(0).toUpperCase() + pathSegments[0].slice(1)
     : "Dashboard";
 
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (session?.user) {
+      getNotificationsAction().then((res) => {
+        if (res.notifications) {
+          setNotifications(res.notifications);
+          setUnreadCount(res.notifications.filter(n => !n.read).length);
+        }
+      });
+    }
+  }, [session?.user]);
+
+  const handleMarkAllAsRead = async () => {
+    const res = await markAllAsReadAction();
+    if (res.success) {
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    }
+  };
+
+  const handleMarkAsRead = async (id: string, link: string | null) => {
+    await markAsReadAction(id);
+    if (link) {
+      window.location.href = link;
+    } else {
+      setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+      setUnreadCount(notifications.filter(n => !n.read && n.id !== id).length);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background/80 px-6 backdrop-blur-md">
@@ -74,20 +105,28 @@ export function TopNavbar({ companyName }: { companyName?: string }) {
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-normal flex items-center justify-between">
                 <span className="font-semibold">Notifications</span>
-                <span className="text-xs text-primary cursor-pointer hover:underline">Mark all as read</span>
+                <span onClick={handleMarkAllAsRead} className="text-xs text-primary cursor-pointer hover:underline">Mark all as read</span>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <ScrollArea className="h-[300px]">
-              {mockNotifications.map((notif) => (
-                <div key={notif.id} className={cn("p-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer", !notif.read && "bg-primary/5")}>
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-sm font-medium">{notif.title}</span>
-                    <span className="text-xs text-muted-foreground">{notif.time}</span>
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
+              ) : (
+                notifications.map((notif) => (
+                  <div 
+                    key={notif.id} 
+                    onClick={() => handleMarkAsRead(notif.id, notif.link)}
+                    className={cn("p-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer", !notif.read && "bg-primary/5")}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-sm font-medium">{notif.title}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
-                </div>
-              ))}
+                ))
+              )}
             </ScrollArea>
             <DropdownMenuSeparator />
             <div className="p-2 text-center">
