@@ -51,7 +51,7 @@ export async function checkInAction() {
       return { error: "System settings not configured." };
     }
 
-    const status = determineAttendanceStatus(now, settings.officeStartTime, settings.lateThreshold);
+    const status = determineAttendanceStatus(now, settings.officeStartTime, settings.lateThreshold, settings.timezone);
 
     await prisma.attendance.create({
       data: {

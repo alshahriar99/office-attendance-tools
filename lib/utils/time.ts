@@ -32,17 +32,24 @@ export function formatMinutes(totalMinutes: number): string {
 export function determineAttendanceStatus(
   checkInTime: Date,
   officeStartTimeStr: string,
-  lateThresholdMinutes: number
+  lateThresholdMinutes: number,
+  timezone: string
 ): string {
-  // Convert office start time to today's date for comparison
-  const [startHour, startMinute] = officeStartTimeStr.split(':').map(Number);
+  // Convert check-in time to local HH:mm string in the given timezone
+  const checkInTimeString = checkInTime.toLocaleTimeString('en-US', { 
+    hour12: false, 
+    timeZone: timezone, 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
   
-  const expectedStartTime = new Date(checkInTime);
-  expectedStartTime.setHours(startHour, startMinute, 0, 0);
+  // Convert strings to minutes since midnight for easy comparison
+  const checkInMinutes = timeStringToMinutes(checkInTimeString);
+  const startMinutes = timeStringToMinutes(officeStartTimeStr);
+  const thresholdMinutes = startMinutes + lateThresholdMinutes;
   
-  const lateThresholdTime = new Date(expectedStartTime.getTime() + lateThresholdMinutes * 60000);
-
-  if (checkInTime > lateThresholdTime) {
+  // Also handle cases where a user might check in before midnight (next day shift) but assuming normal day shifts:
+  if (checkInMinutes > thresholdMinutes) {
     return "LATE";
   }
   
