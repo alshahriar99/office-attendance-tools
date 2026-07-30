@@ -1,31 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function GET() {
-  const dbUrl = process.env.DATABASE_URL || "";
-  const cleanUrl = dbUrl.trim().replace(/^["']|["']$/g, "");
-  const maskedUrl = cleanUrl.length > 20 ? cleanUrl.substring(0, 20) + "..." : cleanUrl;
-
-  if (!cleanUrl) {
-    return NextResponse.json({
-      success: false,
-      error: "DATABASE_URL environment variable is MISSING or EMPTY in your Vercel Project Settings! Please add DATABASE_URL in Vercel Settings -> Environment Variables and select Production environment.",
-    }, { status: 500 });
+  // ✅ SECURITY: Only allow admins to seed
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized. Please login first." }, { status: 401 });
   }
-
-  if (!cleanUrl.startsWith("postgresql://") && !cleanUrl.startsWith("postgres://")) {
-    return NextResponse.json({
-      success: false,
-      error: `DATABASE_URL in Vercel starts with invalid format: "${maskedUrl}". It MUST start with postgresql:// or postgres://!`,
-    }, { status: 500 });
+  const dbUser = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } });
+  if (dbUser?.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden. Admin access required." }, { status: 403 });
   }
 
   const results: string[] = [];
   const errors: string[] = [];
 
   try {
-    const adminEmail = "admin@example.com";
     const adminPassword = "Password123!";
 
     const employees = [
@@ -36,8 +28,8 @@ export async function GET() {
       { email: "employee5@example.com", name: "Employee Five" },
     ];
 
-    // 1. Delete existing seed accounts/users to ensure fresh clean state
-    const seedEmails = [adminEmail, ...employees.map((e) => e.email)];
+    // 1. Delete existing SEED accounts only (NOT the real admin)
+    const seedEmails = employees.map((e) => e.email);
     const existingUsers = await prisma.user.findMany({
       where: { email: { in: seedEmails } },
     });
@@ -46,32 +38,10 @@ export async function GET() {
       await prisma.account.deleteMany({ where: { userId: { in: userIds } } });
       await prisma.session.deleteMany({ where: { userId: { in: userIds } } });
       await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-      results.push(`Cleaned up ${existingUsers.length} previous seed users`);
+      results.push(`Cleaned up ${existingUsers.length} previous seed employees`);
     }
 
-    // 2. Create Admin user using auth.api.signUpEmail
-    try {
-      const adminRes = await auth.api.signUpEmail({
-        body: {
-          email: adminEmail,
-          password: adminPassword,
-          name: "Admin User",
-        },
-      });
-      if (adminRes && adminRes.user) {
-        await prisma.user.update({
-          where: { id: adminRes.user.id },
-          data: { role: "ADMIN" },
-        });
-        results.push(`Created admin: ${adminEmail}`);
-      } else {
-        errors.push(`Admin signUpEmail returned empty response`);
-      }
-    } catch (err: any) {
-      errors.push(`Admin creation error: ${err.message || String(err)}`);
-    }
-
-    // 3. Create Employee users
+    // 2. Create Employee users
     for (const emp of employees) {
       try {
         const empRes = await auth.api.signUpEmail({
@@ -91,7 +61,7 @@ export async function GET() {
       }
     }
 
-    // 4. Create default Settings if missing
+    // 3. Create default Settings if missing
     const settingsCount = await prisma.settings.count();
     if (settingsCount === 0) {
       await prisma.settings.create({
@@ -111,8 +81,8 @@ export async function GET() {
       success: errors.length === 0,
       results,
       errors,
+      note: "Seed employees created. Your admin account is untouched.",
       credentials: {
-        admin: { email: adminEmail, password: adminPassword },
         employee: { email: "employee1@example.com", password: adminPassword },
       },
     });
@@ -121,7 +91,6 @@ export async function GET() {
       {
         success: false,
         error: error.message || "Failed to seed database",
-        stack: error.stack,
       },
       { status: 500 }
     );
