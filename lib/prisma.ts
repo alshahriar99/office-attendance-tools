@@ -12,7 +12,7 @@ if (directUrl) {
   directUrl = directUrl.trim().replace(/^["']|["']$/g, "");
   process.env.DIRECT_URL = directUrl;
 } else if (dbUrl) {
-  process.env.DIRECT_URL = dbUrl;
+  process.env.DIRECT_URL = dbUrl.replace(":6543", ":5432").replace(/[?&]pgbouncer=true/g, "");
 }
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
@@ -29,4 +29,4 @@ export const prisma =
       : undefined,
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
